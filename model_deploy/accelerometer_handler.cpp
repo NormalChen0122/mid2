@@ -8,6 +8,7 @@ int16_t pDataXYZ[3] = {0};
 
 // A buffer holding the last 200 sets of 3-channel values
 static float save_data[600] = {0.0};
+int n_of_z_ex_1000;
 // Most recent position in the save_data buffer
 int begin_index = 0;
 // True if there is not yet enough data to run inference
@@ -33,8 +34,10 @@ bool ReadAccelerometer(tflite::ErrorReporter* error_reporter, float* input,
   }
 
   // Obtain a sample
+  n_of_z_ex_1000 = 0;
   while(sample_skip_counter <= sample_every_n) {
      BSP_ACCELERO_AccGetXYZ(pDataXYZ);
+     if (pDataXYZ[2] > 1000) n_of_z_ex_1000++;
      sample_skip_counter += 1;
   }
 

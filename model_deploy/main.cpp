@@ -34,6 +34,7 @@ DigitalOut led1(LED1);
 DigitalOut led2(LED2);
 DigitalOut led3(LED3);
 int feature_data[10];
+extern int n_of_z_ex_1000; // from accelerometer_handler.cpp
 
 MQTT::Client<MQTTNetwork, Countdown> *p_client;
 
@@ -58,6 +59,10 @@ RPCFunction rpc_qcall_acc_cap_fun(&qcall_acc_cap_fun, "qcall_acc_cap_fun");
 void stop_acc_cap_fun(Arguments *in, Reply *out);
 RPCFunction rpc_acc_cap_fun(&stop_acc_cap_fun, "stop_acc_cap_fun");
 
+
+void qcall_retrive_fes_data(Arguments *in, Reply *out);
+void retrive_fes_data(void);
+RPCFunction rpc_qcall_retrive_fes_data(&qcall_retrive_fes_data, "qcall_retrive_fes_data");
 
 int PredictGesture(float* output);
 // InterruptIn button(USER_BUTTON);
@@ -327,8 +332,9 @@ int acc_cap_fun(void)
       uLCD.color(RED);
       uLCD.locate(0,5);
       uLCD.printf("ges ID: %d", gesture_index); //Default Green on black text
+      uLCD.locate(0,6);
+      uLCD.printf("seq num: %d", seq_num); //Default Green on black text
       // publish the gesture ID and sequence number
-      seq_num++;
       sprintf(need_to_transmit, "%d\n%d", gesture_index, seq_num);
       if (p_client->isConnected()) {
           printf("is connected\r\n");
@@ -338,8 +344,13 @@ int acc_cap_fun(void)
       }
       mqtt_queue.call(&publish_message, p_client, need_to_transmit, topic_0);
 
-      // publish the extract geature
-
+      // save the extract geature
+      if (seq_num < 10) {
+        feature_data[seq_num] = n_of_z_ex_1000;
+        printf("n_of_z_ex_1000 = %d\n", n_of_z_ex_1000);
+        seq_num++;
+      }
+      
 
       printf("I am working, done_mode0 = %d\r\n", done_mode0);
     }
@@ -347,6 +358,8 @@ int acc_cap_fun(void)
     
   }
   led1 = 0; // means this mode is over
+
+
   return 0;
 }
 
@@ -378,3 +391,38 @@ void publish_message(MQTT::Client<MQTTNetwork, Countdown>* client, char *need_to
     printf("Puslish message: %s\r\n", buff);
 }
 
+void qcall_retrive_fes_data(Arguments *in, Reply *out)
+{
+  func_queue.call(&retrive_fes_data);
+    int i;
+  for (i = 0; i < 10; ++i) {
+      printf("feature_data[i] = %d\n", feature_data[i]);
+      printf("I am here #%d\n", i);
+      sprintf(need_to_transmit, "%d\n%d", feature_data[i], i);
+      if (p_client->isConnected()) {
+          printf("is connected\r\n");
+      }
+      else {
+          printf("isn't connected\r\n");
+      }
+      mqtt_queue.call(&publish_message, p_client, need_to_transmit, topic_1);
+      ThisThread::sleep_for(2s);
+  }
+}
+void retrive_fes_data(void)
+{
+  int i;
+  for (i = 0; i < 10; ++i) {
+      printf("feature_data[i] = %d\n", feature_data[i]);
+      printf("I am here #%d\n", i);
+      sprintf(need_to_transmit, "%d\n%d", feature_data[i], i);
+      if (p_client->isConnected()) {
+          printf("is connected\r\n");
+      }
+      else {
+          printf("isn't connected\r\n");
+      }
+      mqtt_queue.call(&publish_message, p_client, need_to_transmit, topic_1);
+      ThisThread::sleep_for(2s);
+  }
+}
